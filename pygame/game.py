@@ -23,16 +23,19 @@ cwd = os.getcwd() #get current working directory
 print(cwd)
 player_img = pygame.image.load("/Users/andy/Programming/Python/pygame/space-ship.png").convert()
 player_img = pygame.transform.scale(player_img, (50,50))
-rock_img = pygame.image.load(os.path.join("python/pygame","stone.png")).convert()
-bullet_img = pygame.image.load(os.path.join("python/pygame","bullet.png")).convert()
+rock_img = pygame.image.load(os.path.join("pygame","stone.png")).convert()
+bullet_img = pygame.image.load(os.path.join("pygame","bullet.png")).convert()
 bullet_img = pygame.transform.scale(bullet_img, (20,20))
-bg = pygame.image.load(os.path.join("python/pygame", "bg.jpg")).convert()
+bg = pygame.image.load(os.path.join("pygame", "bg.jpg")).convert()
 bg = pygame.transform.rotate(bg,90)
 bg = pygame.transform.scale(bg, (WIDTH,HEIGHT))
+player_lives_img = pygame.image.load(os.path.join("pygame","heart.png")).convert()
+player_lives_img = pygame.transform.scale(player_lives_img,(20,20))
 
 score = 0
+lives = 5
 font_name = pygame.font.match_font('arial')
-def draw_text(surface, text, size, x, y):
+def draw_score(surface, text, size, x, y):
     font = pygame.font.Font(font_name, size)
     text_surface = font.render(text, True, WHITE)
     text_rect = text_surface.get_rect()
@@ -116,7 +119,7 @@ class Bullet(pygame.sprite.Sprite):
     def __init__(self, ship_x, ship_y):
         pygame.sprite.Sprite.__init__(self)
         self.image = bullet_img
-        self.image.set_colorkey((255,255,255))
+        self.image.set_colorkey(WHITE)
         self.rect = self.image.get_rect()
         self.rect.centerx = ship_x
         self.rect.centery = ship_y
@@ -126,12 +129,22 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.y += self.speed
         if(self.rect.bottom <= 0):
             self.kill()
-        
+
+class Life_Sprite(pygame.sprite.Sprite):
+    def __init__(self, x):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = player_lives_img
+        self.image.set_colorkey(WHITE)
+        self.rect = self.image.get_rect()  #put a rectangle around the sprite
+        self.rect.x = x
+        self.rect.y = 0
 
 
 all_sprites = pygame.sprite.Group() #group all sprites together
 all_rocks = pygame.sprite.Group()
 all_bullets = pygame.sprite.Group()
+all_lives = pygame.sprite.Group()
+lives_list = []
 
 player = Player()
 all_sprites.add(player)
@@ -139,7 +152,11 @@ for i in range(ROCK_COUNT):
     rock = Rock()
     all_sprites.add(rock)
     all_rocks.add(rock)
-
+for i in range(lives):
+    life = Life_Sprite(i * 20)
+    all_lives.add(life)
+    lives_list.append(life)
+    
 running = True
 #game loop
 while running:
@@ -166,13 +183,20 @@ while running:
         all_rocks.add(rock)
 
     #check if rocks hit player, returns a list of all rocks that collided with player
-    rock_hit_player = pygame.sprite.spritecollide(player, all_rocks, False, pygame.sprite.collide_circle)
+    rock_hit_player = pygame.sprite.spritecollide(player, all_rocks, True, pygame.sprite.collide_circle)
     if rock_hit_player:
-        running = False
+        lives -= 1
+        lives_list[-1].kill()
+        lives_list.pop()
+        if(lives <= 0):
+            running = False
+        
+        
 
     #display
     #screen.fill((200,200,200))
     screen.blit(bg, (0,0))
     all_sprites.draw(screen) #draw the all_sprite group onto screen
-    draw_text(screen, str(int(score//1)), 20, WIDTH/2, 0)
+    all_lives.draw(screen)
+    draw_score(screen, str(int(score//1)), 20, WIDTH/2, 0)
     pygame.display.update()
